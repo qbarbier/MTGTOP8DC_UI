@@ -195,6 +195,8 @@ mtgtop8.estimate.winrate <- function(mat){
     return(round(top.players/2)+ronde) #a ameliorer
   }
   
+  mat <- mat[-which(!mat$position%in%rownames(posttop8.score)),]
+  
   score <- unlist(lapply(c(1:dim(mat)[1]),function(i){
     players <- as.numeric(mat[i,"players"])
     position <- mat[i,"position"]

@@ -3,6 +3,8 @@ library("ggrepel")
 library("fpc")
 library("dendextend")
 library("uwot")
+library("plotly")
+library("ggplot2")
 
 load(file = "www/mtgtop8DC_computeTable.Rdata")
 load(file = "www/mtgtop8DC_scdata.Rdata")
@@ -21,6 +23,8 @@ server <- function(input, output, session){
   
   updateDateInput(session, "date1.2", value=max(mat$date)-61)
   updateDateInput(session, "date2.2", value=max(mat$date))
+  
+  updateSelectInput(session,"selectCard",choices=row.names(df),selected=1)
   
   output$dataBaseSetting <- renderText({
     str <- paste0("Tools version : 0.03. \n",
@@ -72,10 +76,10 @@ server <- function(input, output, session){
     y <- "win.rate"
     
     output$plotTierList <- renderPlot({
-      p <- ggplot(tierlist,aes_string(x=x,y=y,label="group",fill="tier")) +
-        geom_point(show.legend = FALSE)+ 
+      p <- ggplot(tierlist,aes_string(x=x,y=y,label="group",fill="tier",color="tier")) +
+        geom_point(show.legend = FALSE)+
         geom_hline(yintercept = mean(tierlist$win.rate),linetype = "dashed")+
-        geom_label_repel()+
+        geom_text()+
         scale_size_continuous(guide = "none")+
         xlab("Percent of presence %")+
         ylab("Estimate Win Rate %")+
@@ -145,12 +149,71 @@ server <- function(input, output, session){
       dt <- dt[which(dt$Presence>as.numeric(input$minPercent2)),]
     }
     
-    p <- ggplot(dt,aes_string(x="UMAP1",y="UMAP2",label="decks",color=input$deckColor))+
+    p <- ggplot2::ggplot(dt,aes_string(x="UMAP1",y="UMAP2",label="decks",color=input$deckColor))+
       geom_label_repel()+
       geom_point(show.legend = FALSE)+
-      scale_color_gradient(low="blue",mid="yellow", high="red")
+      scale_color_gradient(low="blue", high="red")
     
     return(p)
-  }) 
+  })
+  
+  output$scardCamenbert <- renderPlotly({
+    if(is.null(input$selectCard)){return(NULL)}
+    if(input$selectCard==""){return(NULL)}
+    
+    val <- df[input$selectCard,]
+    val <- val[which(val>0)]
+    
+    val.max <- sum(val)
+    all.max <- sum(apply(df, 2, function(x){max(x)}))
+    
+    data <- data.frame("Percent"=c(val.max,c(all.max-val.max)),
+                         "Categorie"=c("In Deck","Not in Deck"))
+    
+    fig <- plot_ly(data, labels = ~Categorie, values = ~Percent, type = 'pie')
+    fig <- fig %>% layout(title = paste0('% of deck which play ',input$selectCard),
+                          xaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE),
+                          yaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE))
+    
+    return(fig)
+    
+  })
+  
+  output$scardBarplot <- renderPlotly({
+    if(is.null(input$selectCard)){return(NULL)}
+    if(input$selectCard==""){return(NULL)}
+    
+    val <- df[input$selectCard,]
+    val <- val[which(val>0)]
+    
+    df.max <- df[,names(val)]
+    max <- apply(df.max, 2, function(x){max(x)})
+    
+    percent <- unlist((val/max)*100)
+    names(percent) <- colnames(val)
+    names(percent) <- gsub(" decks","",names(percent))
+    
+    # percent <- sort(percent, decreasing = T)
+    percent.name <- factor(names(percent), level=names(sort(percent, decreasing = F)))
+    
+    tierlist <- compute.tier.list(values$tierlist)[[1]][,c("group","tier")]
+    colors <- rep("tx",length(percent))
+    names(colors) <- percent.name
+    
+    for(i in c(1:length(colors))){
+      if(names(colors)[i]%in%row.names(tierlist)){
+        colors[i] <- tierlist[names(colors)[i],"tier"]
+      }
+    }
+
+    fig <- plot_ly(x = percent, 
+                   y = percent.name, color = colors,
+                   type = 'bar', orientation = 'h',
+                   height=100+(20*length(percent)),
+                   xaxis = list(categoryorder = "total descending")
+                   )
+    
+    return(fig)
+  })
   
 }

@@ -1,17 +1,18 @@
 library("shiny")
 library("shinydashboard")
+library("plotly")
 
 dashboardPage(
   dashboardHeader(title="MTG-TOP8 DC"),
   dashboardSidebar(
     sidebarMenu(
       menuItem("Tier List", tabName = "tierlist", icon = icon("dashboard")),
-      menuItem("Deck Analysis", tabName = "decks", icon = icon("th"))
-      #menuItem("Single-card", tabName="scard",icon=icon("cards")),
-      #menuItem("Source and data",tabName="source",icon=icon("source"))
+      menuItem("Single-card", tabName="scard",icon=icon("map")),
+      menuItem("Deck Analysis", tabName = "decks", icon = icon("th")),
+      menuItem("Source and data",tabName="source",icon=icon("source"))
     )
   ),
-  dashboardBody(
+  dashboardBody(fluidPage(
     tabItems(
       tabItem(tabName = "tierlist",
         fluidRow(column(12,
@@ -46,8 +47,13 @@ dashboardPage(
           )
         )
       ),
-      tabItem(tabName="scard"
-              
+      tabItem(tabName="scard",fluidRow(column(12,
+        column(4,
+          column(12,selectInput("selectCard","Select a card",choices=NULL)),
+          column(12,plotlyOutput("scardCamenbert",width = 350, height = 350))
+        ),
+        column(8,plotlyOutput("scardBarplot"))
+        ))
       ),
       tabItem(tabName="source",
         column(6,shinydashboard::box(title="Tier List Data",width=6)),
@@ -59,7 +65,7 @@ dashboardPage(
         )
       )
     )
-  )
+  ))
 )
 
 # fluidPage(
