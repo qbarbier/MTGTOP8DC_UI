@@ -27,7 +27,7 @@ if(!is.null(db)){
     run <- TRUE 
   } else {
     run <- FALSE
-  }
+  }x
 }
 
 if(run){

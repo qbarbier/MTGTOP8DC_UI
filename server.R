@@ -5,6 +5,9 @@ library("dendextend")
 library("uwot")
 library("plotly")
 library("ggplot2")
+library("png")
+library("gridExtra")
+library("grid")
 
 load(file = "www/mtgtop8DC_computeTable.Rdata")
 load(file = "www/mtgtop8DC_scdata.Rdata")
@@ -18,10 +21,10 @@ server <- function(input, output, session){
     tierlist = NULL
   )
   
-  updateDateInput(session, "date1", value=max(mat$date)-61)
+  updateDateInput(session, "date1", value="2024-03-25")#max(mat$date)-61)
   updateDateInput(session, "date2", value=max(mat$date))
   
-  updateDateInput(session, "date1.2", value=max(mat$date)-61)
+  updateDateInput(session, "date1.2", value="2024-02-26")
   updateDateInput(session, "date2.2", value=max(mat$date))
   
   updateSelectInput(session,"selectCard",choices=row.names(df),selected=1)
@@ -67,22 +70,29 @@ server <- function(input, output, session){
     tierlist <- tierlist[which(tierlist$percent>th.percent),]
     tierlist$sd.win.rate <- 100*(1/tierlist$sd.win.rate)
     
-    tierlist <- compute.tier.list(tierlist)
+    tierlist <- compute.tier.list(tierlist,input$y.value)
     tier.th <- tierlist[[2]]
     tierlist <- tierlist[[1]]
     tierlist$tier <- as.factor(tierlist$tier)
     
     x <- "percent"
-    y <- "win.rate"
+    y <- input$y.value
+    
+    y.lab <- "MTGTOP8 Score"
+    # img <- readPNG(system.file("img", "Rlogo.png", package="png"))
+    
+    # browser()
     
     output$plotTierList <- renderPlot({
       p <- ggplot(tierlist,aes_string(x=x,y=y,label="group",fill="tier",color="tier")) +
         geom_point(show.legend = FALSE)+
-        geom_hline(yintercept = mean(tierlist$win.rate),linetype = "dashed")+
-        geom_text()+
+        geom_hline(yintercept = mean(tierlist[,input$y.value]),linetype = "dashed")+
+        # geom_text()+
+        geom_label_repel(aes_string(label="group"),colour="black")+
+        # annotation_custom(rasterGrob(img), xmin = 0, xmax = 0, ymin = -5, ymax = -10)+
         scale_size_continuous(guide = "none")+
         xlab("Percent of presence %")+
-        ylab("Estimate Win Rate %")+
+        ylab(y.lab)+
         labs(title ="Presence vs Win rate Duel commander",
              subtitle=paste0("From ",input$date1," to ",input$date2,", with ",sum(tierlist$nbr.deck),
                              " decks. Precense thresold ",min(round(tierlist$percent,2))),
@@ -129,7 +139,7 @@ server <- function(input, output, session){
     tierlist <- tier.list.dc.mtgtop8(mat,date.d=min(mat$date),
                                      date.f = max(mat$date),
                                      limit.players=12)
-    tierlist <- compute.tier.list(tierlist)[[1]]
+    tierlist <- compute.tier.list(tierlist,input$y.value)[[1]]
 
     Presence <- tierlist[row.names(dt),"percent"]
     Win.rate <- tierlist[row.names(dt),"win.rate"]
@@ -196,7 +206,7 @@ server <- function(input, output, session){
     # percent <- sort(percent, decreasing = T)
     percent.name <- factor(names(percent), level=names(sort(percent, decreasing = F)))
     
-    tierlist <- compute.tier.list(values$tierlist)[[1]][,c("group","tier")]
+    tierlist <- compute.tier.list(values$tierlist,input$y.value)[[1]][,c("group","tier")]
     colors <- rep("tx",length(percent))
     names(colors) <- percent.name
     

@@ -17,9 +17,10 @@ dashboardPage(
       tabItem(tabName = "tierlist",
         fluidRow(column(12,
           column(8,
-            column(3,dateInput("date1","Start Date", value=NA)),
-            column(3,dateInput("date2","End Date", value=NA)),
+            column(2,dateInput("date1","Start Date", value=NA)),
+            column(2,dateInput("date2","End Date", value=NA)),
             column(2,numericInput("players","Tourn. Size",value=12)),
+            column(2,selectInput("y.value","Y Value",choices=c("top8.score","win.rate"))),
             # column(1,tags$br(),checkboxInput("other","Others",value=FALSE)),
             column(3,sliderInput("minPercent","Percent Min",min=0.1, max=10, step=0.1, value=1))
           ),

@@ -59,7 +59,7 @@ mtgtop8.scraping <- function(db.deck=NULL,db.card=NULL,imax=41200,
           card_html <- rvest::read_html(paste0("https://www.mtgtop8.com/event",dl))
           decks.name <- rvest::html_text(rvest::html_nodes(card_html,"a"))[grep("archetype",rvest::html_nodes(card_html,"a"))]
           print(decks.name)
-          str.pos <- rvest::html_text(rvest::html_nodes(card_html,"div.event_title"))[grep("#",rvest::html_text(rvest::html_nodes(card_html,"div.event_title")))]
+          str.pos <- rvest::html_text(rvest::html_nodes(card_html,"div.event_title"))[grep("^#",rvest::html_text(rvest::html_nodes(card_html,"div.event_title")))]
           str.pos <- stringr::str_extract(str.pos,"#[^ ]+")
           pos <- gsub("#","",str.pos)
           names.decks[[length(names.decks)+1]] <- pos
@@ -183,6 +183,8 @@ mtgtop8.estimate.winrate <- function(mat){
     return(score1+score2)
   }
   
+  
+  
   match.jouer <- function(players,top.players,ronde.suisse,position){
     res <- lapply(c(1:length(ronde.suisse)),function(i){
       a <- as.numeric(stringr::str_split(names(ronde.suisse)[[i]],"-")[[1]][1])
@@ -198,9 +200,11 @@ mtgtop8.estimate.winrate <- function(mat){
   mat <- mat[-which(!mat$position%in%rownames(posttop8.score)),]
   
   score <- unlist(lapply(c(1:dim(mat)[1]),function(i){
+    # print(i)
     players <- as.numeric(mat[i,"players"])
     position <- mat[i,"position"]
     top.players <- as.numeric(mat[i,"top.players"])
+    if(top.players > 8){top.players <- 16}
     sc <- win.rate(players,top.players,ronde.suisse,position)
     return(sc)
   }))
@@ -213,7 +217,21 @@ mtgtop8.estimate.winrate <- function(mat){
     return(sc)
   }))
   
-  mat <- cbind(mat, score, match.jouer, win.rate=(score/match.jouer)*100)
+  top8.score <- unlist(lapply(c(1:dim(mat)[1]),function(i){
+    position <- unlist(mat[i,"position"])
+    if(is.na(as.numeric(position))==TRUE){
+      positions <- stringr::str_split(position,"-")[[1]]
+      value <- (mean(as.numeric(positions)))
+    } else {
+      value <- (as.numeric(position))
+    }
+    
+    players <- unlist(mat[i,"players"])
+    return(value+(1/log2(((sort(unique(players)))))*5))
+
+  }))
+  
+  mat <- cbind(mat, score, match.jouer, win.rate=(score/match.jouer)*100, top8.score)
   return(mat)
 }
 

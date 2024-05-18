@@ -20,18 +20,22 @@ tier.list.dc.mtgtop8 <- function(mat, date.d=NULL, date.f=NULL, limit.players=NU
   min.rate.arche <- list()
   max.rate.arche <- list()
   taux.player.arch <- list()
+  top8.score.arch <- list()
+  
   for(ar in list.arche){
     m.w.r <- mean(temp[which(temp$group==ar),"win.rate"])
     t.p.r <- (length(which(temp$group==ar))/dim(temp)[1])*100
     s.w.r <- sd(temp[which(temp$group==ar),"win.rate"])
     min <- min(temp[which(temp$group==ar),"win.rate"])
     max <- max(temp[which(temp$group==ar),"win.rate"])
+    m.t.s <- c(-1*mean(temp[which(temp$group==ar),"top8.score"]))
     
     win.rate.arche[[ar]] <- m.w.r
     taux.player.arch[[ar]] <- t.p.r
     sd.rate.arche[[ar]] <- s.w.r
     min.rate.arche[[ar]] <- min
     max.rate.arche[[ar]] <- max
+    top8.score.arch[[ar]] <- m.t.s
   }
   nbr.deck <- table(temp$group)
   nbr.deck <- nbr.deck[unlist(list.arche)]
@@ -41,6 +45,7 @@ tier.list.dc.mtgtop8 <- function(mat, date.d=NULL, date.f=NULL, limit.players=NU
               min.rate.arche,
               max.rate.arche,
               taux.player.arch,
+              top8.score.arch,
               nbr.deck)
   
   tierlist <- data.frame(do.call(cbind, res))[-1]
@@ -55,16 +60,17 @@ tier.list.dc.mtgtop8 <- function(mat, date.d=NULL, date.f=NULL, limit.players=NU
   tierlist[,4] <- as.numeric(tierlist[,4])
   tierlist[,5] <- as.numeric(tierlist[,5])
   tierlist[,6] <- as.numeric(tierlist[,6])
+  tierlist[,7] <- as.numeric(tierlist[,7])
   colnames(tierlist) <- c("win.rate","sd.win.rate","min.win.rate","max.win.rate",
-                          "percent","nbr.deck","group")
+                          "percent","top8.score","nbr.deck","group")
   
   return(tierlist)  
 }
 
-compute.tier.list <- function(tierlist){
+compute.tier.list <- function(tierlist, y.val="win.rate"){
   
-  x <- scale(tierlist$win.rate, center = T, scale = T)
-  y <- scale(tierlist$percent, center=T, scale=T)
+  y <- scale(tierlist[,y.val], center = T, scale = T)
+  x <- scale(tierlist$percent, center=T, scale=T)
   score <- unlist(x+y)[,1]
   tiers <- cbind("decks"=row.names(tierlist),"score"=as.numeric(score))
   #tiers <- tiers[order(as.numeric(tiers[,2])),]
